@@ -112,33 +112,73 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
   }
 
   // ---------- Tick sound (Web Audio, no files) ----------
-  var ac = null, soundOn = false, alt = false;
+  var ac = null, soundOn = false, alt = false, bus = null, hasCustom = false;
+  // Drop your own sound next to this file as tick.mp3 (or .wav) and it is used automatically.
+  var TICK_START = 0, TICK_LEN = 1; // seconds: which part of tick.mp3 plays each second
+  var customBuf = null, ct = null;
+  var custom = new Audio("tick.mp3");
+  custom.addEventListener("canplaythrough", function () { hasCustom = true; });
+  function setupBus() {
+    var len = ac.sampleRate * 1.6, buf = ac.createBuffer(2, len, ac.sampleRate);
+    for (var c = 0; c < 2; c++) { var d = buf.getChannelData(c); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    var cv2 = ac.createConvolver(); cv2.buffer = buf;
+    var wet = ac.createGain(); wet.gain.value = 0.55;
+    var comp = ac.createDynamicsCompressor();
+    bus = ac.createGain();
+    bus.connect(comp); bus.connect(cv2); cv2.connect(wet); wet.connect(comp); comp.connect(ac.destination);
+  }
   function playTick() {
-    if (!soundOn || !ac || ac.state !== "running") return;
+    if (!soundOn) return;
+    if (customBuf && ac && ac.state === "running") {
+      var s = ac.createBufferSource(), cg = ac.createGain(), t0 = ac.currentTime;
+      s.buffer = customBuf;
+      cg.gain.setValueAtTime(1, t0);
+      cg.gain.setValueAtTime(1, t0 + TICK_LEN - 0.05);
+      cg.gain.linearRampToValueAtTime(0, t0 + TICK_LEN);
+      s.connect(cg); cg.connect(ac.destination);
+      s.start(t0, TICK_START, TICK_LEN);
+      return;
+    }
+    if (hasCustom) {
+      custom.pause(); custom.currentTime = TICK_START; custom.play().catch(function () {});
+      clearTimeout(ct); ct = setTimeout(function () { custom.pause(); }, TICK_LEN * 1000);
+      return;
+    }
+    if (!ac || ac.state !== "running") return;
     var t = ac.currentTime;
-    alt = !alt; // tick / tock
+    alt = !alt;
+    // deep cinematic thud
     var o = ac.createOscillator(), g = ac.createGain();
-    o.type = "square";
-    o.frequency.setValueAtTime(alt ? 1500 : 1050, t);
+    o.type = "sine";
+    o.frequency.setValueAtTime(alt ? 95 : 70, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.25);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.18, t + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    var f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = alt ? 2200 : 1500; f.Q.value = 1.2;
-    o.connect(f); f.connect(g); g.connect(ac.destination);
-    o.start(t); o.stop(t + 0.06);
-    // low wooden thump
-    var o2 = ac.createOscillator(), g2 = ac.createGain();
-    o2.type = "sine";
-    o2.frequency.setValueAtTime(alt ? 190 : 140, t);
-    o2.frequency.exponentialRampToValueAtTime(60, t + 0.09);
-    g2.gain.setValueAtTime(0.0001, t);
-    g2.gain.exponentialRampToValueAtTime(0.5, t + 0.004);
-    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
-    o2.connect(g2); g2.connect(ac.destination);
-    o2.start(t); o2.stop(t + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.95, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + 0.5);
+    // metallic clock click
+    var n = ac.createBufferSource(), nb = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate), nd = nb.getChannelData(0);
+    for (var i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 2);
+    n.buffer = nb;
+    var f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = alt ? 3200 : 2400; f.Q.value = 6;
+    var g2 = ac.createGain(); g2.gain.value = 0.7;
+    n.connect(f); f.connect(g2); g2.connect(bus); n.start(t);
+    // bell-like ring
+    [alt ? 880 : 660, alt ? 1320 : 990].forEach(function (fr, k) {
+      var r = ac.createOscillator(), rg = ac.createGain();
+      r.type = "sine"; r.frequency.value = fr;
+      rg.gain.setValueAtTime(0.0001, t);
+      rg.gain.exponentialRampToValueAtTime(0.07 / (k + 1), t + 0.004);
+      rg.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      r.connect(rg); rg.connect(bus); r.start(t); r.stop(t + 1);
+    });
   }
   $("snd").addEventListener("click", function () {
-    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); setupBus();
+      fetch("tick.mp3").then(function (r) { return r.arrayBuffer(); })
+        .then(function (b) { ac.decodeAudioData(b, function (d) { customBuf = d; }); })
+        .catch(function () {});
+    }
     soundOn = !soundOn;
     if (soundOn) ac.resume();
     this.classList.toggle("on", soundOn);
