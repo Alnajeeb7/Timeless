@@ -129,21 +129,7 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
   }
   function playTick() {
     if (!soundOn) return;
-    if (customBuf && ac && ac.state === "running") {
-      var s = ac.createBufferSource(), cg = ac.createGain(), t0 = ac.currentTime;
-      s.buffer = customBuf;
-      cg.gain.setValueAtTime(1, t0);
-      cg.gain.setValueAtTime(1, t0 + TICK_LEN - 0.05);
-      cg.gain.linearRampToValueAtTime(0, t0 + TICK_LEN);
-      s.connect(cg); cg.connect(ac.destination);
-      s.start(t0, TICK_START, TICK_LEN);
-      return;
-    }
-    if (hasCustom) {
-      custom.pause(); custom.currentTime = TICK_START; custom.play().catch(function () {});
-      clearTimeout(ct); ct = setTimeout(function () { custom.pause(); }, TICK_LEN * 1000);
-      return;
-    }
+    if (customBuf || hasCustom) return; // custom clip plays as a continuous loop
     if (!ac || ac.state !== "running") return;
     var t = ac.currentTime;
     alt = !alt;
@@ -173,14 +159,33 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
       r.connect(rg); rg.connect(bus); r.start(t); r.stop(t + 1);
     });
   }
+  var loopSrc = null;
+  function msToNextSec() { return 1000 - (Date.now() % 1000); }
+  function stopLoop() {
+    if (loopSrc) { try { loopSrc.stop(); } catch (e) {} loopSrc = null; }
+    custom.pause(); clearTimeout(ct);
+  }
+  function startLoop() { // whole clip, repeating, first beat on a second boundary
+    stopLoop();
+    if (!soundOn || !customBuf || !ac) return;
+    loopSrc = ac.createBufferSource();
+    loopSrc.buffer = customBuf; loopSrc.loop = true;
+    loopSrc.connect(ac.destination);
+    loopSrc.start(ac.currentTime + msToNextSec() / 1000);
+  }
+  function startElem() {
+    stopLoop(); custom.loop = true; custom.currentTime = 0;
+    ct = setTimeout(function () { if (soundOn) custom.play().catch(function () {}); }, msToNextSec());
+  }
   $("snd").addEventListener("click", function () {
     if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); setupBus();
       fetch("tick.mp3").then(function (r) { return r.arrayBuffer(); })
-        .then(function (b) { ac.decodeAudioData(b, function (d) { customBuf = d; }); })
-        .catch(function () {});
+        .then(function (b) { ac.decodeAudioData(b, function (d) { customBuf = d; if (soundOn) startLoop(); }); })
+        .catch(function () { if (soundOn && hasCustom) startElem(); });
     }
     soundOn = !soundOn;
-    if (soundOn) ac.resume();
+    if (soundOn) { ac.resume(); if (customBuf) startLoop(); }
+    else stopLoop();
     this.classList.toggle("on", soundOn);
     this.textContent = soundOn ? "🔊 SOUND ON" : "🔇 SOUND OFF";
     if (soundOn) playTick();
