@@ -10,12 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg1: #0b150d;
-  --bg2: #030604;
-  --g: #7fc46b;
-  --g2: #4f8a47;
-  --dim: #2c4330;
-  --fg: #e6efe0;
+  --bg1: #0b150d; --bg2: #030604; --g: #7fc46b; --g2: #4f8a47; --dim: #2c4330; --fg: #e6efe0;
   --serif: "Cinzel", "Trajan Pro", "Palatino Linotype", Georgia, serif;
   --mono: "Share Tech Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -23,13 +18,8 @@
 html, body { height: 100%; }
 body {
   background: linear-gradient(180deg, var(--bg1), var(--bg2));
-  color: var(--fg);
-  font-family: var(--serif);
-  display: flex;
-  padding: 2.5vh 20px;
-  text-align: center;
-  overflow-x: hidden;
-  overflow-y: auto;
+  color: var(--fg); font-family: var(--serif); display: flex;
+  padding: 2.5vh 20px; text-align: center; overflow-x: hidden; overflow-y: auto;
 }
 #leaves { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 body::after {
@@ -37,7 +27,13 @@ body::after {
   background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.7));
 }
 main { width: 100%; max-width: 520px; margin: auto; position: relative; z-index: 2; }
-
+#snd {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: 14px; z-index: 5;
+  background: rgba(5,10,7,.7); color: var(--g); border: 1px solid var(--g2);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 2px; padding: 8px 12px;
+  border-radius: 4px; cursor: pointer;
+}
+#snd.on { background: var(--g); color: #050a07; }
 .title { font-size: 13px; letter-spacing: 9px; color: var(--g2); margin-bottom: 1.5vh; padding-left: 9px; }
 svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; overflow: visible; }
 .spin { transform-box: view-box; transform-origin: 50% 50%; }
@@ -54,25 +50,22 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
 .min { stroke: var(--g); stroke-width: 3.5; stroke-linecap: round; }
 .sec { stroke: var(--fg); stroke-width: 1.2; opacity: .75; }
 .hub { fill: #050a07; stroke: var(--g); stroke-width: 2; }
-
 .days {
-  font-size: clamp(70px, min(38vw, 19vh), 210px);
-  font-weight: 600; line-height: 1; margin-top: 3vh;
-  color: var(--g);
-  font-variant-numeric: lining-nums tabular-nums;
+  font-size: clamp(70px, min(38vw, 19vh), 210px); font-weight: 600; line-height: 1; margin-top: 3vh;
+  color: var(--g); font-variant-numeric: lining-nums tabular-nums;
 }
 .sub { font-size: clamp(13px, min(4.6vw, 2.6vh), 22px); letter-spacing: 8px; color: var(--g2); margin-top: 1.5vh; padding-left: 8px; }
 .hms { font-family: var(--mono); font-size: clamp(26px, min(11vw, 7vh), 60px); letter-spacing: 6px; color: var(--fg); margin-top: 2vh; padding-left: 6px; }
 .bar { height: 2px; background: var(--dim); margin: 3vh auto 1.5vh; max-width: 240px; }
 .bar i { display: block; height: 100%; width: 0; background: var(--g); transition: width .6s; }
 .foot { font-family: var(--mono); font-size: 12px; letter-spacing: 3px; color: var(--g2); }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } .bar i { transition: none; } }
 </style>
 </head>
 <body>
 <canvas id="leaves"></canvas>
+<button id="snd" type="button">🔇 SOUND OFF</button>
 
 <main>
   <p class="title">DOOMSDAY</p>
@@ -81,11 +74,9 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
     <g class="spin r3"><circle class="ring" cx="200" cy="200" r="196" stroke-width="1" stroke-dasharray="2 10"/></g>
     <g class="spin r2"><circle class="ring" cx="200" cy="200" r="190" stroke-width="2" stroke-dasharray="60 24 6 24" opacity=".5"/></g>
     <g class="spin r1"><circle class="ring" cx="200" cy="200" r="118" stroke-width="1" stroke-dasharray="4 8" opacity=".5"/></g>
-
     <path class="zone" d="M200 200 L22 200 A178 178 0 0 1 200 22 Z"/>
     <path class="arc" d="M22 200 A178 178 0 0 1 200 22"/>
     <g id="ticks"></g>
-
     <line class="hour" x1="200" y1="200" x2="200" y2="112"/>
     <line class="min" id="hand" x1="200" y1="200" x2="200" y2="48" transform="rotate(-90 200 200)"/>
     <line class="sec" id="sec" x1="200" y1="226" x2="200" y2="40"/>
@@ -102,7 +93,6 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
 
 <script>
   // ---------- Countdown ----------
-  // Exam target: 6 February 2027, India Standard Time.
   var target = new Date("2027-02-06T00:00:00+05:30").getTime();
   var start = new Date("2026-10-21T00:00:00+05:30").getTime();
   var total = target - start;
@@ -121,28 +111,75 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
     tg.appendChild(l);
   }
 
+  // ---------- Tick sound (Web Audio, no files) ----------
+  var ac = null, soundOn = false, alt = false;
+  function playTick() {
+    if (!soundOn || !ac || ac.state !== "running") return;
+    var t = ac.currentTime;
+    alt = !alt; // tick / tock
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(alt ? 1500 : 1050, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    var f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = alt ? 2200 : 1500; f.Q.value = 1.2;
+    o.connect(f); f.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + 0.06);
+    // low wooden thump
+    var o2 = ac.createOscillator(), g2 = ac.createGain();
+    o2.type = "sine";
+    o2.frequency.setValueAtTime(alt ? 190 : 140, t);
+    o2.frequency.exponentialRampToValueAtTime(60, t + 0.09);
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(0.5, t + 0.004);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    o2.connect(g2); g2.connect(ac.destination);
+    o2.start(t); o2.stop(t + 0.12);
+  }
+  $("snd").addEventListener("click", function () {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    soundOn = !soundOn;
+    if (soundOn) ac.resume();
+    this.classList.toggle("on", soundOn);
+    this.textContent = soundOn ? "🔊 SOUND ON" : "🔇 SOUND OFF";
+    if (soundOn) playTick();
+  });
+
+  // ---------- Render (runs exactly once per countdown second) ----------
   function update() {
     var now = Date.now(), rem = target - now;
     var p = Math.max(0, Math.min(1, (now - start) / total));
     $("hand").setAttribute("transform", "rotate(" + (-90 + p * 90) + " 200 200)");
     $("bar").style.width = (p * 100) + "%";
+    var secLeft = rem > 0 ? Math.ceil(rem / 1000) % 60 : 0;
+    $("sec").setAttribute("transform", "rotate(" + (-(secLeft / 60) * 360) + " 200 200)");
     if (rem <= 0) {
       $("days").textContent = "0";
       $("caption").textContent = "IT’S MIDNIGHT";
       $("hms").textContent = "00:00:00";
       return;
     }
-    var d = Math.floor(rem / 864e5);
+    var s = Math.ceil(rem / 1000); // whole seconds left
+    var d = Math.floor(s / 86400);
     $("days").textContent = d;
     $("caption").textContent = (d === 1 ? "DAY" : "DAYS") + " TO MIDNIGHT";
-    $("hms").textContent =
-      pad(Math.floor(rem % 864e5 / 36e5)) + ":" +
-      pad(Math.floor(rem % 36e5 / 6e4)) + ":" +
-      pad(Math.floor(rem % 6e4 / 1e3));
+    $("hms").textContent = pad(Math.floor(s % 86400 / 3600)) + ":" + pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60);
     $("foot").textContent = "GATE 2027 · 06 FEB 2027 · " + (p * 100).toFixed(1) + "% GONE";
   }
-  update();
-  setInterval(update, 1000);
+
+  // Single sync point: digits, second hand and sound all fire on the same second change.
+  var lastSec = -1;
+  function syncCheck() {
+    var s = Math.ceil((target - Date.now()) / 1000);
+    if (s !== lastSec) {
+      lastSec = s;
+      update();
+      if (s > 0) playTick();
+    }
+  }
+  syncCheck();
+  setInterval(syncCheck, 100); // keeps running (and ticking) in background tabs
 
   // ---------- Realistic falling leaves (hi-DPI canvas) ----------
   var cv = $("leaves"), ctx = cv.getContext("2d");
@@ -159,7 +196,6 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
   resize();
   addEventListener("resize", resize);
 
-  // One detailed leaf sprite: gradient body, midrib, side veins, edge shading.
   function makeSprite(hue, sat, lit, blur) {
     var c = document.createElement("canvas");
     c.width = 200; c.height = 320;
@@ -175,7 +211,6 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
       x.bezierCurveTo(-w * 0.95, h * 0.2, -w * 1.1, -h * 0.28, 0, -h / 2);
       x.closePath();
     }
-
     outline();
     var g = x.createLinearGradient(-w, 0, w, 0);
     g.addColorStop(0, hs(lit - 9));
@@ -183,7 +218,6 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
     g.addColorStop(1, hs(lit - 4));
     x.fillStyle = g;
     x.fill();
-
     x.save();
     x.clip();
     var tip = x.createLinearGradient(0, -h / 2, 0, h / 2);
@@ -204,14 +238,12 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
       }
     }
     x.restore();
-
     x.beginPath();
     x.moveTo(0, h / 2 + 4);
     x.lineTo(0, -h / 2 + 8);
     x.strokeStyle = hs(lit + 16, 0.7);
     x.lineWidth = 3.4;
     x.stroke();
-
     outline();
     x.strokeStyle = hs(lit - 14, 0.6);
     x.lineWidth = 2;
@@ -230,8 +262,8 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
     l.size = 22 + z * z * 90;
     l.x = initial ? rnd(-0.1, 1.1) * W : W + l.size + rnd(0, W * 0.35);
     l.y = rnd(-0.1, 1.05) * H;
-    l.vx = -(50 + z * 150 + rnd(0, 40));   // right to left
-    l.vy = 8 + z * 26 + rnd(0, 10);        // gentle downward drift
+    l.vx = -(50 + z * 150 + rnd(0, 40));
+    l.vy = 8 + z * 26 + rnd(0, 10);
     l.swayAmp = rnd(14, 40);
     l.swayFreq = rnd(0.6, 1.6);
     l.swayPh = rnd(0, 6.28);
@@ -250,11 +282,7 @@ svg { width: min(100%, 42vh); height: auto; display: block; margin: 0 auto; over
   function frame(t) {
     var dt = Math.min(0.05, (t - last) / 1000);
     last = t;
-
-    // sweeping second hand (counts down through each minute)
-    var rem = Math.max(0, target - Date.now());
-    $("sec").setAttribute("transform", "rotate(" + (-(rem % 60000) / 60000 * 360) + " 200 200)");
-
+    syncCheck();
     var wind = 30 * Math.sin(t / 4200) + 14 * Math.sin(t / 1700 + 1);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
